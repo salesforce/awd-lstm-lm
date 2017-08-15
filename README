@@ -1,0 +1,13 @@
+To recreate results in paper:
+
++ Train model
++ Finetune model
++ Apply pointer
+
+PTB (approx): `python main.py --seed 1111 --dropouti 0.4 --data data/penn --batch_size 40`
+WikiText-2 (exact): `python main.py --seed 20923`
+
+Speed:
+
++
++ WikiText-2 takes 108 seconds per epoch on NVIDIA Quadro GP100

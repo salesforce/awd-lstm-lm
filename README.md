@@ -29,7 +29,9 @@ This should reproduce the model from the paper exactly and can be confirmed by s
 The augmentations to the LSTM, including our variant of [DropConnect (Wan et al. 2013)](https://cs.nyu.edu/~wanli/dropc/dropc.pdf) termed weight dropping, allow for the use of NVIDIA's cuDNN LSTM implementation.
 This ensures the model is fast to train even when convergence may take many hundreds of epochs.
 
-If speed is a major issue, SGD converges more quickly than our non-monotonically triggered variant of ASGD, though achieves a worse perplexity.
+The default speeds for the model during training on an NVIDIA Quadro GP100 running on:
 
-+ Penn Treebank takes approximately 50 seconds per epoch (NVIDIA Quadro GP100)
-+ WikiText-2 takes 105 seconds per epoch (NVIDIA Quadro GP100)
++ Penn Treebank: approximately 50 seconds per epoch
++ WikiText-2: 105 seconds per epoch
+
+If speed is a major issue, SGD converges more quickly than the non-monotonically triggered variant of ASGD, though achieves a worse overall perplexity.

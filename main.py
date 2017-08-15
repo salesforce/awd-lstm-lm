@@ -43,8 +43,6 @@ parser.add_argument('--wdrop', type=float, default=0.5,
                     help='amount of weight dropout to apply to the RNN hidden to hidden matrix')
 parser.add_argument('--tied', action='store_false',
                     help='tie the word embedding and softmax weights')
-parser.add_argument('--scaled_loss', type=float, default=0,
-                    help='scale the loss according to the word frequency with the value being minimum loss')
 parser.add_argument('--seed', type=int, default=1111,
                     help='random seed')
 parser.add_argument('--nonmono', type=int, default=5,
@@ -108,27 +106,6 @@ print('Args:', args)
 print('Model total parameters:', total_params)
 
 criterion = nn.CrossEntropyLoss()
-if args.scaled_loss:
-    #word_weights = torch.FloatTensor([v for k, v in sorted(corpus.dictionary.counter.items())]) / corpus.dictionary.total
-    #print(word_weights[:16], word_weights.min(), word_weights.max(), word_weights.mean())
-    #word_weights = word_weights - word_weights.min()
-    #word_weights = word_weights / word_weights.max()
-    #word_weights = args.scaled_loss + (1 - args.scaled_loss) * (1 - word_weights)
-
-    word_weights = torch.FloatTensor([v for k, v in sorted(corpus.dictionary.counter.items())])
-    word_weights = torch.log(word_weights) / torch.log(torch.ones(len(word_weights)) * 2)
-    print(word_weights[:16], word_weights.min(), word_weights.max(), word_weights.mean())
-    word_weights = word_weights - word_weights.min()
-    word_weights = word_weights / word_weights.max()
-    word_weights = args.scaled_loss + (1 - args.scaled_loss) * (1 - word_weights)
-
-    print(word_weights[:16], word_weights.min(), word_weights.max(), word_weights.mean())
-    print('Under 0.95', len([x for x in word_weights if x < 0.95]))
-    print('Under 0.8', len([x for x in word_weights if x < 0.8]))
-    print('Under 0.5', len([x for x in word_weights if x < 0.5]))
-    scaled_criterion = nn.CrossEntropyLoss(weight=word_weights)
-else:
-    scaled_criterion = criterion
 
 ###############################################################################
 # Training code
@@ -170,7 +147,6 @@ def train():
     start_time = time.time()
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(args.batch_size)
-    #for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
     batch, i = 0, 0
     while i < train_data.size(0) - 1 - 1:
         bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
@@ -186,20 +162,13 @@ def train():
 
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
-        # Occasionally reset some of the hidden states to start from nothing
-
-
-
-        #hidden = [hid if np.random.random() < 0.9 else [h * 0 for h in hid] for hid in hidden]
         hidden = repackage_hidden(hidden)
         optimizer.zero_grad()
 
         output, hidden, rnn_hs, dropped_rnn_hs = model(data, hidden, return_h=True)
-        #output, _, rnn_h, dropped_rnn_h = model(data, hidden, return_h=True)
         raw_loss = criterion(output.view(-1, ntokens), targets)
-        scaled_loss = scaled_criterion(output.view(-1, ntokens), targets)
 
-        loss = scaled_loss
+        loss = raw_loss
         # Activiation Regularization
         loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
         # Temporal Activation Regularization (slowness)
@@ -208,13 +177,7 @@ def train():
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
-        #model.encoder.weight.grad.data *= 0.1
         optimizer.step()
-
-        # If eval, generate h_t for next batch but using full information (no dropout)
-        # If train, generate h_t for the next batch using a different (non-optimized) dropout path
-        #model.eval()
-        #_, hidden = model(data, hidden)
 
         total_loss += raw_loss.data
         optimizer.param_groups[0]['lr'] = lr2
@@ -261,13 +224,6 @@ try:
                 print('Saving Averaged!')
                 stored_loss = val_loss2
 
-            # Run on test data.
-            test_loss = evaluate(test_data, test_batch_size)
-            print('=' * 89)
-            print('| JUST FOR LOGGING PURPOSES | test loss {:5.2f} | test ppl {:8.2f}'.format(
-                test_loss, math.exp(test_loss)))
-            print('=' * 89)
-            
             for prm in model.parameters():
                 prm.data = tmp[prm].clone()
 

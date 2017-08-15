@@ -35,3 +35,16 @@ The default speeds for the model during training on an NVIDIA Quadro GP100 runni
 + WikiText-2: 105 seconds per epoch
 
 If speed is a major issue, SGD converges more quickly than the non-monotonically triggered variant of ASGD, though achieves a worse overall perplexity.
+
+## Citation
+
+If you use this code or our results in your research, please cite:
+
+```
+@article{merityRegOpt,
+  title={Regularizing and Optimizing LSTM Language Models},
+  author={Merity, Stephen and Keskar, Nitish Shirish and Socher, Richard},
+  journal={arXiv preprint arXiv:1708.02182},
+	year = {2017}
+}
+```

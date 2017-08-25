@@ -25,6 +25,8 @@ If you use this code or our results in your research, please cite:
 ## Software Requirements
 
 This codebase requires Python 3 and PyTorch 0.1.12_2.
+If you are using Anaconda, this can be achieved via:
+`conda install pytorch=0.1.12 -c soumith`.
 
 Note the older version of PyTorch - upgrading to later versions would require minor updates and would prevent the exact reproductions of the results below.
 Pull requests which update to later PyTorch versions are welcome, especially if they have baseline numbers to report too :)

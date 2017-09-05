@@ -16,7 +16,7 @@ parser.add_argument('--data', type=str, default='/root/WT2/',
                     help='location of the data corpus')
 parser.add_argument('--save', type=str,default='best.pt',
                     help='model to use the pointer over')
-parser.add_argument('--cuda', action='store_false',
+parser.add_argument('--cuda', action='store_true',
                     help='use CUDA')
 parser.add_argument('--bptt', type=int, default=5000,
                     help='sequence length')

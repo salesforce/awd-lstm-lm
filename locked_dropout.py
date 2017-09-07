@@ -9,7 +9,7 @@ class LockedDropout(nn.Module):
     def forward(self, x, dropout=0.5):
         if not self.training or not dropout:
             return x
-        m = x.data.new(x.size(0), 1, x.size(2)).bernoulli_(1 - dropout)
+        m = x.data.new(1, x.size(1), x.size(2)).bernoulli_(1 - dropout)
         mask = Variable(m, requires_grad=False) / (1 - dropout)
         mask = mask.expand_as(x)
         return mask * x

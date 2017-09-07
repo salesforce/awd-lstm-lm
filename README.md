@@ -48,13 +48,13 @@ The instruction below trains a PTB model that without finetuning achieves perple
 
 First, train the model:
 
-`python main.py --batch_size 20 --data data/penn --dropouti 0.4 --seed 28 --epoch 300 --save PTB.pt`
+`python main.py --cuda --batch_size 20 --data data/penn --dropouti 0.4 --seed 28 --epoch 300 --save PTB.pt`
 
 The first epoch should result in a validation perplexity of `308.03`.
 
 To then fine-tune that model:
 
-`python finetune.py --batch_size 20 --data data/penn --dropouti 0.4 --seed 28 --epoch 300 --save PTB.pt`
+`python finetune.py --cuda --batch_size 20 --data data/penn --dropouti 0.4 --seed 28 --epoch 300 --save PTB.pt`
 
 The validation perplexity after the first epoch should be `60.85`.
 
@@ -62,7 +62,7 @@ The validation perplexity after the first epoch should be `60.85`.
 
 Finally, to run the pointer:
 
-`python pointer.py --data data/penn --save PTB.pt --lambdasm 0.1 --theta 1.0 --window 500 --bptt 5000` 
+`python pointer.py --cuda --data data/penn --save PTB.pt --lambdasm 0.1 --theta 1.0 --window 500 --bptt 5000` 
 
 Note that the model in the paper was trained for 500 epochs and the batch size was 40, in comparison to 300 and 20 for the model above.
 The window size for this pointer is chosen to be 500 instead of 2000 as in the paper.
@@ -73,11 +73,11 @@ The window size for this pointer is chosen to be 500 instead of 2000 as in the p
 
 The instruction below train a WT2 model that without finetuning achieves perplexities of `69.1` / `66.1` (validation / testing), with finetuning achieves perplexities of `68.7` / `65.8`, and with the continuous cache pointer augmentation achieves perplexities of `53.6` / `52.0` (`51.95` specifically).
 
-`python main.py --seed 20923 --epochs 750 --data data/wikitext-2 --save WT2.pt`
+`python main.py --cuda --seed 20923 --epochs 750 --data data/wikitext-2 --save WT2.pt`
 
 The first epoch should result in a validation perplexity of `629.93`.
 
-`python -u finetune.py --seed 1111 --epochs 750 --data data/wikitext-2 --save WT2.pt`
+`python -u finetune.py --cuda --seed 1111 --epochs 750 --data data/wikitext-2 --save WT2.pt`
 
 The validation perplexity after the first epoch should be `69.14`.
 
@@ -85,7 +85,7 @@ The validation perplexity after the first epoch should be `69.14`.
 
 Finally, run the pointer:
 
-`python pointer.py --save WT2.pt --lambdasm 0.1279 --theta 0.662 --window 3785 --bptt 2000 --data data/wikitext-2`
+`python pointer.py --cuda --save WT2.pt --lambdasm 0.1279 --theta 0.662 --window 3785 --bptt 2000 --data data/wikitext-2`
 
 **Note:** BPTT just changes the length of the sequence pushed onto the GPU but won't impact the final result.
 

@@ -2,7 +2,6 @@ import argparse
 import time
 import math
 import numpy as np
-np.random.seed(331)
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -65,6 +64,7 @@ parser.add_argument('--wdecay', type=float, default=1.2e-6,
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
+np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 if torch.cuda.is_available():
     if not args.cuda:

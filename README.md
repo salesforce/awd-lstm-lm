@@ -47,13 +47,15 @@ This is proper experimental practice and is especially important when tuning hyp
 
 #### Penn Treebank (PTB)
 
+The instruction below trains a PTB model that without finetuning achieves perplexities of approximately `61.2` / `58.8` (validation / testing), with finetuning achieves perplexities of approximately `58.8` / `56.5`, and with the continuous cache pointer augmentation achieves perplexities of approximately `53.2` / `52.5`.
+
 First, train the model:
 
-`python main.py --batch_size 20 --data data/penn --dropouti 0.4 --dropouth 0.225 --seed 28 --epoch 500 --save PTB.pt`
+`python main.py --batch_size 20 --data data/penn --dropouti 0.4 --dropouth 0.25 --seed 141 --epoch 500 --save PTB.pt`
 
 To then fine-tune that model:
 
-`python finetune.py --batch_size 20 --data data/penn --dropouti 0.4 --dropouth 0.225 --seed 28 --epoch 500 --save PTB.pt`
+`python finetune.py --batch_size 20 --data data/penn --dropouti 0.4 --dropouth 0.25 --seed 141 --epoch 500 --save PTB.pt`
 
 **Note:** Fine-tuning modifies the original saved model in `PTB.pt` - if you wish to keep the original weights you must copy the file.
 
@@ -67,14 +69,15 @@ The window size for this pointer is chosen to be 500 instead of 2000 as in the p
 **Note:** BPTT just changes the length of the sequence pushed onto the GPU but won't impact the final result.
 
 #### WikiText-2 (WT2)
+The instruction below trains a PTB model that without finetuning achieves perplexities of approximately `68.7` / `65.6` (validation / testing), with finetuning achieves perplexities of approximately `67.4` / `64.7`, and with the continuous cache pointer augmentation achieves perplexities of approximately `52.2` / `50.6`.
 
-The instruction below trains a WT2 model without finetuning.
+First, train the model:
 
-`python main.py --epochs 750 --data data/wikitext-2 --save WT2.pt`
+`python main.py --epochs 750 --data data/wikitext-2 --save WT2.pt --dropouth 0.2 --seed 1882`
 
 To finetune the model,
 
-`python -u finetune.py --epochs 750 --data data/wikitext-2 --save WT2.pt`
+`python finetune.py --epochs 750 --data data/wikitext-2 --save WT2.pt --dropouth 0.2 --seed 1882`
 
 **Note:** Fine-tuning modifies the original saved model in `WT2.pt` - if you wish to keep the original weights you must copy the file.
 

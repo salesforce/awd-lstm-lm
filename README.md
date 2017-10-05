@@ -79,10 +79,10 @@ The instruction below trains a PTB model that without finetuning achieves perple
 
 Final QRNN hyper parameters for the WikiText-2 dataset are still being determined. The hyper parameters below should be a reasonable start however.
 
-The instruction below will a QRNN model that without finetuning achieves perplexities of approximately `68.7` / `65.6` (validation / testing), with finetuning achieves perplexities of approximately `67.2` / `64.7`.
+The instruction below will a QRNN model that without finetuning achieves perplexities of approximately `71.2` / `68.4` (validation / testing), with finetuning achieves perplexities of approximately `67.2` / `64.7`.
 
 + `python main.py --epochs 400 --data data/wikitext-2 --save WT2.pt --batch_size 20 --clip 0.2 --dropouth 0.2 --nhid 1550 --nlayers 4 --seed 9001 --model QRNN --wdrop 0.1`
-+ `python main.py --epochs 400 --data data/wikitext-2 --save WT2.pt --batch_size 20 --clip 0.2 --dropouth 0.2 --dropouti 0.4 --nhid 1550 --nlayers 4 --seed 9001 --model QRNN --wdrop 0.1`
++ `python main.py --epochs 400 --data data/wikitext-2 --save WT2.pt --batch_size 80 --clip 0.2 --dropouth 0.15 --dropouti 0.3 --nhid 1550 --nlayers 4 --seed 9001 --model QRNN --wdrop 0.1`
 
 ## Speed
 

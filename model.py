@@ -16,10 +16,17 @@ class RNNModel(nn.Module):
         self.hdrop = nn.Dropout(dropouth)
         self.drop = nn.Dropout(dropout)
         self.encoder = nn.Embedding(ntoken, ninp)
-        self.rnns = [torch.nn.LSTM(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else ninp, 1, dropout=0) for l in range(nlayers)]
+        assert rnn_type in ['LSTM', 'QRNN'], 'RNN type is not supported'
+        if rnn_type == 'LSTM':
+            self.rnns = [torch.nn.LSTM(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else ninp, 1, dropout=0) for l in range(nlayers)]
+            if wdrop:
+                self.rnns = [WeightDrop(rnn, ['weight_hh_l0'], dropout=wdrop) for rnn in self.rnns]
+        elif rnn_type == 'QRNN':
+            from torchqrnn import QRNNLayer
+            self.rnns = [QRNNLayer(input_size=ninp if l == 0 else nhid, hidden_size=nhid if l != nlayers - 1 else ninp, save_prev_x=True, zoneout=0, window=2 if l == 0 else 1, output_gate=True if l != nlayers - 1 else True) for l in range(nlayers)]
+            for rnn in self.rnns:
+                rnn.linear = WeightDrop(rnn.linear, ['weight'], dropout=wdrop)
         print(self.rnns)
-        if wdrop:
-            self.rnns = [WeightDrop(rnn, ['weight_hh_l0'], dropout=wdrop) for rnn in self.rnns]
         self.rnns = torch.nn.ModuleList(self.rnns)
         self.decoder = nn.Linear(nhid, ntoken)
 
@@ -44,6 +51,9 @@ class RNNModel(nn.Module):
         self.dropouti = dropouti
         self.dropouth = dropouth
         self.dropoute = dropoute
+
+    def reset(self):
+        if self.rnn_type == 'QRNN': [r.reset() for r in self.rnns]
 
     def init_weights(self):
         initrange = 0.1
@@ -84,6 +94,10 @@ class RNNModel(nn.Module):
 
     def init_hidden(self, bsz):
         weight = next(self.parameters()).data
-        return [(Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else self.ninp).zero_()),
-                Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else self.ninp).zero_()))
-                for l in range(self.nlayers)]
+        if self.rnn_type == 'LSTM':
+            return [(Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else self.ninp).zero_()),
+                    Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else self.ninp).zero_()))
+                    for l in range(self.nlayers)]
+        elif self.rnn_type == 'QRNN':
+            return [Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else self.ninp).zero_())
+                    for l in range(self.nlayers)]

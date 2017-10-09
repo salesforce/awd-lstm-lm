@@ -77,12 +77,12 @@ The instruction below trains a PTB model that without finetuning achieves perple
 
 ### WikiText-2 (WT2) with QRNN
 
-Final QRNN hyper parameters for the WikiText-2 dataset are still being determined. The hyper parameters below should be a reasonable start however.
+The instruction below will a QRNN model that without finetuning achieves perplexities of approximately `69.3` / `66.8` (validation / testing), with finetuning achieves perplexities of approximately `68.5` / `65.9`, and with the continuous cache pointer augmentation achieves perplexities of approximately `53.6` / `52.1`.
+Better numbers are likely achievable but the hyper parameters have not been extensively searched. These hyper parameters should serve as a good starting point however.
 
-The instruction below will a QRNN model that without finetuning achieves perplexities of approximately `71.2` / `68.4` (validation / testing), with finetuning achieves perplexities of approximately `67.2` / `64.7`.
-
-+ `python main.py --epochs 400 --data data/wikitext-2 --save WT2.pt --batch_size 20 --clip 0.2 --dropouth 0.2 --nhid 1550 --nlayers 4 --seed 9001 --model QRNN --wdrop 0.1`
-+ `python main.py --epochs 400 --data data/wikitext-2 --save WT2.pt --batch_size 80 --clip 0.2 --dropouth 0.15 --dropouti 0.3 --nhid 1550 --nlayers 4 --seed 9001 --model QRNN --wdrop 0.1`
++ `python -u main.py --epochs 500 --data data/wikitext-2 --clip 0.25 --dropouti 0.4 --dropouth 0.2 --nhid 1550  --nlayers 4 --seed 4002 --model QRNN --wdrop 0.1 --batch_size 40 --save WT2.pt`
++ `python finetune.py --epochs 500 --data data/wikitext-2 --clip 0.25 --dropouti 0.4 --dropouth 0.2 --nhid 1550 --nlayers 4 --seed 4002 --model QRNN --wdrop 0.1 --batch_size 40 --save WT2.pt`
++ `python -u pointer.py --save WT2.pt --model QRNN --lambdasm 0.1279 --theta 0.662 --window 3785 --bptt 2000 --data data/wikitext-2`
 
 ## Speed
 

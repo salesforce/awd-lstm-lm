@@ -14,6 +14,8 @@ from utils import batchify, get_batch, repackage_hidden
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn',
                     help='location of the data corpus')
+parser.add_argument('--model', type=str, default='LSTM',
+                    help='type of recurrent net (LSTM, QRNN)')
 parser.add_argument('--save', type=str,default='best.pt',
                     help='model to use the pointer over')
 parser.add_argument('--cuda', action='store_false',
@@ -56,6 +58,7 @@ def one_hot(idx, size, cuda=True):
 
 def evaluate(data_source, batch_size=10, window=args.window):
     # Turn on evaluation mode which disables dropout.
+    if args.model == 'QRNN': model.reset()
     model.eval()
     total_loss = 0
     ntokens = len(corpus.dictionary)

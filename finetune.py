@@ -104,6 +104,7 @@ criterion = nn.CrossEntropyLoss()
 
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
+    if args.model == 'QRNN': model.reset()
     model.eval()
     total_loss = 0
     ntokens = len(corpus.dictionary)
@@ -119,6 +120,7 @@ def evaluate(data_source, batch_size=10):
 
 def train():
     # Turn on training mode which enables dropout.
+    if args.model == 'QRNN': model.reset()
     total_loss = 0
     start_time = time.time()
     ntokens = len(corpus.dictionary)

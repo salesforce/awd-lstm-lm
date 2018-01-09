@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from embed_regularize import embedded_dropout, EmbeddingDropout
+from embed_regularize import EmbeddingDropout
 from locked_dropout import LockedDropout
 from weight_drop import WeightDrop
 

@@ -65,6 +65,8 @@ parser.add_argument('--resume', type=str,  default='',
                     help='path of model to resume')
 parser.add_argument('--optimizer', type=str,  default='sgd',
                     help='optimizer to use (sgd, adam)')
+parser.add_argument('--when', nargs="+", type=int, default=[-1],
+                    help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
 args = parser.parse_args()
 
 # Set the random seed manually for reproducibility.
@@ -79,6 +81,15 @@ if torch.cuda.is_available():
 ###############################################################################
 # Load data
 ###############################################################################
+
+def model_save(fn):
+    with open(fn, 'wb') as f:
+        torch.save([model, criterion, optimizer], f)
+
+def model_load(fn):
+    global model, criterion, optimizer
+    with open(fn, 'rb') as f:
+        model, criterion, optimizer = torch.load(f)
 
 import os
 import hashlib
@@ -105,8 +116,7 @@ ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
 if args.resume:
     print('Resuming model ...')
-    with open(args.resume, 'rb') as f:
-        model = torch.load(f)
+    model_load(args.resume)
 if args.cuda:
     model.cuda()
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in model.parameters())
@@ -218,8 +228,7 @@ try:
             print('-' * 89)
 
             if val_loss2 < stored_loss:
-                with open(args.save, 'wb') as f:
-                    torch.save(model, f)
+                model_save(args.save)
                 print('Saving Averaged!')
                 stored_loss = val_loss2
 
@@ -235,14 +244,20 @@ try:
             print('-' * 89)
 
             if val_loss < stored_loss:
-                with open(args.save, 'wb') as f:
-                    torch.save(model, f)
-                print('Saving Normal!')
+                model_save(args.save)
+                print('Saving model (new best validation)')
                 stored_loss = val_loss
 
-            if 't0' not in optimizer.param_groups[0] and (len(best_val_loss)>args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
-                print('Switching!')
+            if args.optimizer == 'sgd' and 't0' not in optimizer.param_groups[0] and (len(best_val_loss)>args.nonmono and val_loss > min(best_val_loss[:-args.nonmono])):
+                print('Switching to ASGD')
                 optimizer = torch.optim.ASGD(model.parameters(), lr=args.lr, t0=0, lambd=0., weight_decay=args.wdecay)
+
+            if epoch in args.when:
+                print('Saving model before learning rate decreased')
+                model_save('{}.e{}'.format(args.save, epoch))
+                print('Dividing learning rate by 10')
+                optimizer.param_groups[0]['lr'] /= 10.
+
             best_val_loss.append(val_loss)
 
 except KeyboardInterrupt:
@@ -250,8 +265,7 @@ except KeyboardInterrupt:
     print('Exiting from training early')
 
 # Load the best saved model.
-with open(args.save, 'rb') as f:
-    model = torch.load(f)
+model_load(args.save)
 
 # Run on test data.
 test_loss = evaluate(test_data, test_batch_size)

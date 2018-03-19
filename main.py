@@ -42,8 +42,6 @@ parser.add_argument('--dropoute', type=float, default=0.1,
                     help='dropout to remove words from embedding layer (0 = no dropout)')
 parser.add_argument('--wdrop', type=float, default=0.5,
                     help='amount of weight dropout to apply to the RNN hidden to hidden matrix')
-parser.add_argument('--tied', action='store_false',
-                    help='tie the word embedding and softmax weights')
 parser.add_argument('--seed', type=int, default=1111,
                     help='random seed')
 parser.add_argument('--nonmono', type=int, default=5,
@@ -68,6 +66,7 @@ parser.add_argument('--optimizer', type=str,  default='sgd',
 parser.add_argument('--when', nargs="+", type=int, default=[-1],
                     help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
 args = parser.parse_args()
+args.tied = True
 
 # Set the random seed manually for reproducibility.
 np.random.seed(args.seed)
@@ -112,18 +111,45 @@ test_data = batchify(corpus.test, test_batch_size, args)
 # Build the model
 ###############################################################################
 
+from splitcross import SplitCrossEntropyLoss
+criterion = None
+
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
+###
 if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
+    optimizer.param_groups[0]['lr'] = args.lr
+    model.dropouti, model.dropouth, model.dropout, args.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
+    if args.wdrop:
+        from weight_drop import WeightDrop
+        for rnn in model.rnns:
+            if type(rnn) == WeightDrop: rnn.dropout = args.wdrop
+            elif rnn.zoneout > 0: rnn.zoneout = args.wdrop
+###
+if not criterion:
+    splits = []
+    if ntokens > 500000:
+        # One Billion
+        # This produces fairly even matrix mults for the buckets:
+        # 0: 11723136, 1: 10854630, 2: 11270961, 3: 11219422
+        splits = [4200, 35000, 180000]
+    elif ntokens > 75000:
+        # WikiText-103
+        splits = [2800, 20000, 76000]
+    print('Using', splits)
+    criterion = SplitCrossEntropyLoss(args.emsize, splits=splits, verbose=False)
+###
+params = list(model.parameters()) + list(criterion.parameters())
 if args.cuda:
-    model.cuda()
-total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in model.parameters())
+    model = model.cuda()
+    criterion = criterion.cuda()
+    params = list(model.parameters()) + list(criterion.parameters())
+###
+total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in params if x.size())
 print('Args:', args)
 print('Model total parameters:', total_params)
-
-criterion = nn.CrossEntropyLoss()
 
 ###############################################################################
 # Training code
@@ -140,7 +166,7 @@ def evaluate(data_source, batch_size=10):
         data, targets = get_batch(data_source, i, args, evaluation=True)
         output, hidden = model(data, hidden)
         output_flat = output.view(-1, ntokens)
-        total_loss += len(data) * criterion(output_flat, targets).data
+        total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
 
@@ -171,7 +197,7 @@ def train():
         optimizer.zero_grad()
 
         output, hidden, rnn_hs, dropped_rnn_hs = model(data, hidden, return_h=True)
-        raw_loss = criterion(output.view(-1, ntokens), targets)
+        raw_loss = criterion(model.decoder.weight, model.decoder.bias, output, targets)
 
         loss = raw_loss
         # Activiation Regularization

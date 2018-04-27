@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
-from embed_regularize import embedded_dropout
+from embed_regularize import EmbeddingDropout
 from locked_dropout import LockedDropout
 from weight_drop import WeightDrop
 
@@ -15,7 +15,7 @@ class RNNModel(nn.Module):
         self.idrop = nn.Dropout(dropouti)
         self.hdrop = nn.Dropout(dropouth)
         self.drop = nn.Dropout(dropout)
-        self.encoder = nn.Embedding(ntoken, ninp)
+        self.encoder = EmbeddingDropout(ntoken, ninp, dropout=dropoute)
         assert rnn_type in ['LSTM', 'QRNN', 'GRU'], 'RNN type is not supported'
         if rnn_type == 'LSTM':
             self.rnns = [torch.nn.LSTM(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else (ninp if tie_weights else nhid), 1, dropout=0) for l in range(nlayers)]
@@ -67,7 +67,7 @@ class RNNModel(nn.Module):
         self.decoder.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, input, hidden, return_h=False):
-        emb = embedded_dropout(self.encoder, input, dropout=self.dropoute if self.training else 0)
+        emb = self.encoder(input)
         #emb = self.idrop(emb)
 
         emb = self.lockdrop(emb, self.dropouti)

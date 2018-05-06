@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 
 from embed_regularize import embedded_dropout
 from locked_dropout import LockedDropout
 from weight_drop import WeightDrop
+
 
 class RNNModel(nn.Module):
     """Container module with an encoder, a recurrent module, and a decoder."""
@@ -30,7 +30,7 @@ class RNNModel(nn.Module):
             self.rnns = [QRNNLayer(input_size=ninp if l == 0 else nhid, hidden_size=nhid if l != nlayers - 1 else (ninp if tie_weights else nhid), save_prev_x=True, zoneout=0, window=2 if l == 0 else 1, output_gate=True) for l in range(nlayers)]
             for rnn in self.rnns:
                 rnn.linear = WeightDrop(rnn.linear, ['weight'], dropout=wdrop)
-        print(self.rnns)
+
         self.rnns = torch.nn.ModuleList(self.rnns)
         self.decoder = nn.Linear(nhid, ntoken)
 
@@ -71,19 +71,17 @@ class RNNModel(nn.Module):
         #emb = self.idrop(emb)
 
         emb = self.lockdrop(emb, self.dropouti)
-
         raw_output = emb
         new_hidden = []
         #raw_output, hidden = self.rnn(emb, hidden)
         raw_outputs = []
         outputs = []
         for l, rnn in enumerate(self.rnns):
-            current_input = raw_output
             raw_output, new_h = rnn(raw_output, hidden[l])
             new_hidden.append(new_h)
             raw_outputs.append(raw_output)
             if l != self.nlayers - 1:
-                #self.hdrop(raw_output)
+                # self.hdrop(raw_output)
                 raw_output = self.lockdrop(raw_output, self.dropouth)
                 outputs.append(raw_output)
         hidden = new_hidden
@@ -99,9 +97,9 @@ class RNNModel(nn.Module):
     def init_hidden(self, bsz):
         weight = next(self.parameters()).data
         if self.rnn_type == 'LSTM':
-            return [(Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_()),
-                    Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_()))
+            return [(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_(),
+                     weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_())
                     for l in range(self.nlayers)]
         elif self.rnn_type == 'QRNN' or self.rnn_type == 'GRU':
-            return [Variable(weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_())
+            return [weight.new(1, bsz, self.nhid if l != self.nlayers - 1 else (self.ninp if self.tie_weights else self.nhid)).zero_()
                     for l in range(self.nlayers)]

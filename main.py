@@ -4,7 +4,6 @@ import math
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 
 import data
 import model
@@ -166,7 +165,7 @@ def evaluate(data_source, batch_size=10):
         output, hidden = model(data, hidden)
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
-    return total_loss[0] / len(data_source)
+    return total_loss.item() / len(data_source)
 
 
 def train():
@@ -203,15 +202,18 @@ def train():
         # Temporal Activation Regularization (slowness)
         if args.beta: loss = loss + sum(args.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
         loss.backward()
+        # print([(name, abs(p.grad).sum().item()) 
+        #        for name, p in model.named_parameters()])
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
-        if args.clip: torch.nn.utils.clip_grad_norm(params, args.clip)
+        if args.clip:
+            torch.nn.utils.clip_grad_norm_(params, args.clip)
         optimizer.step()
 
         total_loss += raw_loss.data
         optimizer.param_groups[0]['lr'] = lr2
         if batch % args.log_interval == 0 and batch > 0:
-            cur_loss = total_loss[0] / args.log_interval
+            cur_loss = total_loss.item() / args.log_interval
             elapsed = time.time() - start_time
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
                     'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
@@ -244,12 +246,11 @@ try:
             for prm in model.parameters():
                 tmp[prm] = prm.data.clone()
                 prm.data = optimizer.state[prm]['ax'].clone()
-
             val_loss2 = evaluate(val_data)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                 'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
-              epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
+              epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
             print('-' * 89)
 
             if val_loss2 < stored_loss:

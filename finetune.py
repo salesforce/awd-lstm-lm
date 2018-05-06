@@ -5,7 +5,6 @@ import numpy as np
 np.random.seed(331)
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 
 import data
 import model
@@ -104,7 +103,8 @@ criterion = nn.CrossEntropyLoss()
 
 def evaluate(data_source, batch_size=10):
     # Turn on evaluation mode which disables dropout.
-    if args.model == 'QRNN': model.reset()
+    if args.model == 'QRNN':
+        model.reset()
     model.eval()
     total_loss = 0
     ntokens = len(corpus.dictionary)
@@ -112,7 +112,7 @@ def evaluate(data_source, batch_size=10):
     for i in range(0, data_source.size(0) - 1, args.bptt):
         data, targets = get_batch(data_source, i, args, evaluation=True)
         output, hidden = model(data, hidden)
-        output_flat = output.view(-1, ntokens)
+        output_flat = model.decoder(output).view(-1, ntokens)
         total_loss += len(data) * criterion(output_flat, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
@@ -144,6 +144,7 @@ def train():
         optimizer.zero_grad()
 
         output, hidden, rnn_hs, dropped_rnn_hs = model(data, hidden, return_h=True)
+        output = model.decoder(output)
         raw_loss = criterion(output.view(-1, ntokens), targets)
 
         loss = raw_loss
@@ -154,7 +155,7 @@ def train():
         loss.backward()
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
-        torch.nn.utils.clip_grad_norm(model.parameters(), args.clip)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         optimizer.step()
 
         total_loss += raw_loss.data
@@ -175,7 +176,7 @@ def train():
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
-    model = torch.load(f)
+    model = torch.load(f)[0]
 
 
 # Loop over epochs.

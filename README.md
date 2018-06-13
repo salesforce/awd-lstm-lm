@@ -37,6 +37,9 @@ If you use this code or our results in your research, please cite as appropriate
   year={2018}
 }
 ```
+## Update (06/13)
+
+The codebase is now PyTorch 0.4 compatible for most use cases (a big shoutout to @shawntan for a fairly comprehensive PR https://github.com/salesforce/awd-lstm-lm/pull/43). Mild readjustments to hyperparameters may be necessary to obtain quoted performance. If you desire exact reproducibility (or wish to run on PyTorch 0.3 or lower), we suggest using an older commit of this repository. We are still working on `finetune` and `generate` functionality.
 
 ## Software Requirements
 

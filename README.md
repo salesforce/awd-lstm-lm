@@ -12,7 +12,7 @@ The model comes with instructions to train:
 
 The model can be composed of an LSTM or a [Quasi-Recurrent Neural Network](https://github.com/salesforce/pytorch-qrnn/) (QRNN) which is two or more times faster than the cuDNN LSTM in this setup while achieving equivalent or better accuracy.
 
-+ Install PyTorch 0.3
++ Install PyTorch 0.4
 + Run `getdata.sh` to acquire the Penn Treebank and WikiText-2 datasets
 + Train the base model using `main.py`
 + (Optionally) Finetune the model using `finetune.py`
@@ -39,11 +39,11 @@ If you use this code or our results in your research, please cite as appropriate
 ```
 ## Update (06/13)
 
-The codebase is now PyTorch 0.4 compatible for most use cases (a big shoutout to @shawntan for a fairly comprehensive PR https://github.com/salesforce/awd-lstm-lm/pull/43). Mild readjustments to hyperparameters may be necessary to obtain quoted performance. If you desire exact reproducibility (or wish to run on PyTorch 0.3 or lower), we suggest using an older commit of this repository. We are still working on `finetune` and `generate` functionality.
+The codebase is now PyTorch 0.4 compatible for most use cases (a big shoutout to https://github.com/shawntan for a fairly comprehensive PR https://github.com/salesforce/awd-lstm-lm/pull/43). Mild readjustments to hyperparameters may be necessary to obtain quoted performance. If you desire exact reproducibility (or wish to run on PyTorch 0.3 or lower), we suggest using an older commit of this repository. We are still working on `pointer`, `finetune` and `generate` functionalities.
 
 ## Software Requirements
 
-Python 3 and PyTorch 0.3 are required for the current codebase.
+Python 3 and PyTorch 0.4 are required for the current codebase.
 
 Included below are hyper parameters to get equivalent or better results to those included in the original paper.
 

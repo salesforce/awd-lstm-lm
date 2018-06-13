@@ -1,4 +1,3 @@
-import setGPU
 import argparse
 import time
 import math

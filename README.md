@@ -37,7 +37,7 @@ If you use this code or our results in your research, please cite as appropriate
   year={2018}
 }
 ```
-## Update (06/13)
+## Update (June/13/2018)
 
 The codebase is now PyTorch 0.4 compatible for most use cases (a big shoutout to https://github.com/shawntan for a fairly comprehensive PR https://github.com/salesforce/awd-lstm-lm/pull/43). Mild readjustments to hyperparameters may be necessary to obtain quoted performance. If you desire exact reproducibility (or wish to run on PyTorch 0.3 or lower), we suggest using an older commit of this repository. We are still working on `pointer`, `finetune` and `generate` functionalities.
 
@@ -70,7 +70,7 @@ The QRNN model uses a QRNN with convolutional size 2 for the first layer, allowi
 
 **Pointer note:** BPTT just changes the length of the sequence pushed onto the GPU but won't impact the final result.
 
-### Character level enwik8 (PTB) with LSTM
+### Character level enwik8 with LSTM
 
 + `python -u main.py --epochs 50 --nlayers 3 --emsize 400 --nhid 1840 --alpha 0 --beta 0 --dropoute 0 --dropouth 0.1 --dropouti 0.1 --dropout 0.4 --wdrop 0.2 --wdecay 1.2e-6 --bptt 200 --batch_size 128 --optimizer adam --lr 1e-3 --data data/enwik8 --save ENWIK8.pt --when 25 35`
 
@@ -78,7 +78,7 @@ The QRNN model uses a QRNN with convolutional size 2 for the first layer, allowi
 
 + `python -u main.py --epochs 500 --nlayers 3 --emsize 200 --nhid 1000 --alpha 0 --beta 0 --dropoute 0 --dropouth 0.25 --dropouti 0.1 --dropout 0.1 --wdrop 0.5 --wdecay 1.2e-6 --bptt 150 --batch_size 128 --optimizer adam --lr 2e-3 --data data/pennchar --save PTBC.pt --when 300 400`
 
-### Word level WikiText-103 (PTB) with QRNN
+### Word level WikiText-103 (WT103) with QRNN
 
 + `python -u main.py --epochs 14 --nlayers 4 --emsize 400 --nhid 2500 --alpha 0 --beta 0 --dropoute 0 --dropouth 0.1 --dropouti 0.1 --dropout 0.1 --wdrop 0 --wdecay 0 --bptt 140 --batch_size 60 --optimizer adam --lr 1e-3 --data data/wikitext-103 --save WT103.12hr.QRNN.pt --when 12 --model QRNN`
 

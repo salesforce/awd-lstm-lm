@@ -119,8 +119,7 @@ model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers
 if args.resume:
     print('Resuming model ...')
     model_load(args.resume)
-    optimizer.param_groups[0]['lr'] = args.lr
-    model.dropouti, model.dropouth, model.dropout, args.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
+    model.dropouti, model.dropouth, model.dropout, model.dropoute = args.dropouti, args.dropouth, args.dropout, args.dropoute
     if args.wdrop:
         from weight_drop import WeightDrop
         for rnn in model.rnns:

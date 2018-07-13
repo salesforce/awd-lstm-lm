@@ -48,7 +48,10 @@ class SplitCrossEntropyLoss(nn.Module):
 
             # For those targets in the head (idx == 0) we only need to return their loss
             if idx == 0:
-                results.append(softmaxed_head_res[:, :-(self.nsplits - 1)])
+                if self.nsplits > 1:  # this is coming fri self.tail vectors and biases
+                    results.append(softmaxed_head_res[:, :-(self.nsplits - 1)])
+                else:
+                    results.append(softmaxed_head_res)  # there are no splits, this is it!
 
             # If the target is in one of the splits, the probability is the p(tombstone) * p(word within tombstone)
             else:

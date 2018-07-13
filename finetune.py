@@ -8,6 +8,7 @@ import torch.nn as nn
 
 import data
 import model
+from splitcross import SplitCrossEntropyLoss
 
 from utils import batchify, get_batch, repackage_hidden
 
@@ -89,7 +90,7 @@ test_data = batchify(corpus.test, test_batch_size, args)
 
 ntokens = len(corpus.dictionary)
 model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.dropouth, args.dropouti, args.dropoute, args.wdrop, args.tied)
-if args.cuda:
+if args.cuda and torch.cuda.is_available():
     model.cuda()
 total_params = sum(x.size()[0] * x.size()[1] if len(x.size()) > 1 else x.size()[0] for x in model.parameters())
 print('Args:', args)
@@ -111,8 +112,11 @@ def evaluate(data_source, batch_size=10):
     for i in range(0, data_source.size(0) - 1, args.bptt):
         data, targets = get_batch(data_source, i, args, evaluation=True)
         output, hidden = model(data, hidden)
-        output_flat = output.view(-1, ntokens)
-        total_loss += len(data) * criterion(output_flat, targets).data
+        if isinstance(criterion, SplitCrossEntropyLoss):
+            total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
+        else:
+            output_flat = output.view(-1, ntokens)
+            total_loss += len(data) * criterion(output_flat, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss[0] / len(data_source)
 
@@ -130,7 +134,7 @@ def train():
         # Prevent excessively small or negative sequence lengths
         seq_len = max(5, int(np.random.normal(bptt, 5)))
         # There's a very small chance that it could select a very long sequence length resulting in OOM
-        seq_len = min(seq_len, args.bptt + 10)
+        # seq_len = min(seq_len, args.bptt + 10)
 
         lr2 = optimizer.param_groups[0]['lr']
         optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
@@ -143,7 +147,11 @@ def train():
         optimizer.zero_grad()
 
         output, hidden, rnn_hs, dropped_rnn_hs = model(data, hidden, return_h=True)
-        raw_loss = criterion(output.view(-1, ntokens), targets)
+
+        if isinstance(criterion, SplitCrossEntropyLoss):
+            raw_loss = criterion(model.decoder.weight, model.decoder.bias, output, targets).data
+        else:
+            raw_loss = criterion(output.view(-1, ntokens), targets).data
 
         loss = raw_loss
         # Activiation Regularization
@@ -174,7 +182,10 @@ def train():
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
-    model = torch.load(f)
+    if args.cuda and torch.cuda.is_available():
+        model, criterion, _ = torch.load(f)
+    else:
+        model, criterion, _ = torch.load(f, map_location=lambda storage, loc: storage)
 
 
 # Loop over epochs.
@@ -192,7 +203,8 @@ try:
             tmp = {}
             for prm in model.parameters():
                 tmp[prm] = prm.data.clone()
-                prm.data = optimizer.state[prm]['ax'].clone()
+                if 'ax' in optimizer.state[prm]:
+                    prm.data = optimizer.state[prm]['ax'].clone()
 
             val_loss2 = evaluate(val_data)
             print('-' * 89)

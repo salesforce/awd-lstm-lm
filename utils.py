@@ -16,9 +16,7 @@ def batchify(data, bsz, args):
     # Trim off any extra elements that wouldn't cleanly fit (remainders).
     data = data.narrow(0, 0, nbatch * bsz)
     # Evenly divide the data across the bsz batches.
-    data = data.view(bsz, -1).t().contiguous()
-    if args.cuda:
-        data = data.cuda()
+    data = data.view(bsz, -1).t().contiguous().to(args.device)
     return data
 
 

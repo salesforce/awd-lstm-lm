@@ -9,7 +9,7 @@ from torch.autograd import Variable
 import data
 import model
 
-from utils import batchify, get_batch, repackage_hidden
+from utils import batchify, get_batch, repackage_hidden, init_device
 
 parser = argparse.ArgumentParser(description='PyTorch PennTreeBank RNN/LSTM Language Model')
 parser.add_argument('--data', type=str, default='data/penn',
@@ -18,8 +18,8 @@ parser.add_argument('--model', type=str, default='LSTM',
                     help='type of recurrent net (LSTM, QRNN)')
 parser.add_argument('--save', type=str,default='best.pt',
                     help='model to use the pointer over')
-parser.add_argument('--cuda', action='store_false',
-                    help='use CUDA')
+parser.add_argument('--no-cuda', action='store_true',
+                    help='do not use CUDA')
 parser.add_argument('--bptt', type=int, default=5000,
                     help='sequence length')
 parser.add_argument('--window', type=int, default=3785,
@@ -29,6 +29,9 @@ parser.add_argument('--theta', type=float, default=0.6625523432485668,
 parser.add_argument('--lambdasm', type=float, default=0.12785920428335693,
                     help='linear mix between only pointer (1) and only vocab (0) distribution')
 args = parser.parse_args()
+
+# Choose between CUDA or CPU and sets `args.device`
+init_device(args)
 
 ###############################################################################
 # Load data
@@ -49,12 +52,10 @@ test_data = batchify(corpus.test, test_batch_size, args)
 ntokens = len(corpus.dictionary)
 criterion = nn.CrossEntropyLoss()
 
-def one_hot(idx, size, cuda=True):
+def one_hot(idx, size):
     a = np.zeros((1, size), np.float32)
     a[0][idx] = 1
-    v = Variable(torch.from_numpy(a))
-    if cuda: v = v.cuda()
-    return v
+    return Variable(torch.from_numpy(a)).to(args.device)
 
 def evaluate(data_source, batch_size=10, window=args.window):
     # Turn on evaluation mode which disables dropout.
@@ -114,10 +115,7 @@ def evaluate(data_source, batch_size=10, window=args.window):
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
-    if not args.cuda:
-        model = torch.load(f, map_location=lambda storage, loc: storage)
-    else:
-        model = torch.load(f)
+    model = torch.load(f, map_location=args.device)
 print(model)
 
 # Run on val data.

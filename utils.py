@@ -27,3 +27,23 @@ def get_batch(source, i, args, seq_len=None, evaluation=False):
     data = source[i:i+seq_len]
     target = source[i+1:i+1+seq_len].view(-1)
     return data, target
+
+
+def init_device(args):
+    """Sets the `args.device` attribute based on `args.no_cuda` and host
+    availability. It also sets the CUDA seed if needed.
+    """
+    if torch.cuda.is_available():
+        if args.no_cuda:
+            print('WARNING: You have a CUDA device,'
+                  'so you should probably not run with --no_cuda')
+            setattr(args, 'device', torch.device('cpu'))
+        else:
+            if hasattr(args, 'seed'):
+                torch.cuda.manual_seed(args.seed)
+            setattr(args, 'device', torch.device('cuda'))
+    else:
+        if not args.no_cuda:
+            print('WARNING: No CUDA device found, using CPU. '
+                  'It would be best to explicitly run with --no_cuda')
+        setattr(args, 'device', torch.device('cpu'))

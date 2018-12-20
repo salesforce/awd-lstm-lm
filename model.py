@@ -1,3 +1,4 @@
+import logging
 import torch
 import torch.nn as nn
 
@@ -10,11 +11,25 @@ class RNNModel(nn.Module):
 
     def __init__(self, rnn_type, ntoken, ninp, nhid, nlayers, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0, tie_weights=False, alpha=2, beta=1):
         super(RNNModel, self).__init__()
+        self.ntoken = ntoken
+        self.rnn_type = rnn_type
+        self.ninp = ninp
+        self.nhid = nhid
+        self.nlayers = nlayers
+        self.dropout = dropout
+        self.dropouti = dropouti
+        self.dropouth = dropouth
+        self.dropoute = dropoute
+        self.tie_weights = tie_weights
+        self.alpha = alpha
+        self.beta = beta
+
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
         self.hdrop = nn.Dropout(dropouth)
         self.drop = nn.Dropout(dropout)
         self.encoder = nn.Embedding(ntoken, ninp)
+
         assert rnn_type in ['LSTM', 'QRNN', 'GRU'], 'RNN type is not supported'
         if rnn_type == 'LSTM':
             self.rnns = [torch.nn.LSTM(ninp if l == 0 else nhid, nhid if l != nlayers - 1 else (ninp if tie_weights else nhid), 1, dropout=0) for l in range(nlayers)]
@@ -33,6 +48,7 @@ class RNNModel(nn.Module):
         self.rnns = torch.nn.ModuleList(self.rnns)
         self.decoder = nn.Linear(nhid, ntoken)
 
+
         # Optionally tie weights as in:
         # "Using the Output Embedding to Improve Language Models" (Press & Wolf 2016)
         # https://arxiv.org/abs/1608.05859
@@ -46,15 +62,34 @@ class RNNModel(nn.Module):
 
         self.init_weights()
 
-        self.rnn_type = rnn_type
-        self.ninp = ninp
-        self.nhid = nhid
-        self.nlayers = nlayers
-        self.dropout = dropout
-        self.dropouti = dropouti
-        self.dropouth = dropouth
-        self.dropoute = dropoute
-        self.tie_weights = tie_weights
+
+        # Build the SplitCrossEntropyLoss criterion here
+        self.build_criterion()
+
+    def build_criterion(self):
+        splits = []
+        if self.ntokens > 500000:
+            # One Billion
+            # This produces fairly even matrix mults for the buckets:
+            # 0: 11723136, 1: 10854630, 2: 11270961, 3: 11219422
+            splits = [4200, 35000, 180000]
+        elif self.ntokens > 75000:
+            # WikiText-103
+            splits = [2800, 20000, 76000]
+        logging.info('Using splits: {}'.format(' '.join(splits)))
+        self.criterion = SplitCrossEntropyLoss(self.ninp, splits=splits, verbose=False)
+
+    def loss_function(self, X_pred, X_true):
+        output, hidden, rnn_hs, dropped_rnn_hs = X_pred
+        loss = self.criterion(self.decoder.weight, self.decoder.bias, X_pred, X_true)
+
+        # Activiation Regularization
+        if args.alpha: loss = loss + sum(args.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
+
+        # Temporal Activation Regularization (slowness)
+        if args.beta: loss = loss + sum(args.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
+
+        return loss
 
     def reset(self):
         if self.rnn_type == 'QRNN': [r.reset() for r in self.rnns]

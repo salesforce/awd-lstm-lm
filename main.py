@@ -23,7 +23,7 @@ def get_source_directory(directory_name):
 
 def get_experiment_directory(directory_name):
     default_dir = get_source_directory('./results')
-    dest_directory = os.environ.get('MARTIBOT_RESULTS_DIR', default_dir)
+    dest_directory = os.environ.get('RESULTS_DIR', default_dir)
     return os.path.join(dest_directory, directory_name)
 
 

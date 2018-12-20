@@ -168,7 +168,9 @@ def main():
         args.dropouti,
         args.dropoute,
         args.wdrop,
-        args.tied
+        args.tied,
+        args.alpha,
+        args.beta
     )
 
     ###

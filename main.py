@@ -14,6 +14,18 @@ import model as m
 from utils import batchify, get_batch, repackage_hidden
 from splitcross import SplitCrossEntropyLoss
 
+from pytoune.framework import Experiment as PytouneExperiment
+
+
+def get_source_directory(directory_name):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), directory_name)
+
+
+def get_experiment_directory(directory_name):
+    default_dir = get_source_directory('./results')
+    dest_directory = os.environ.get('MARTIBOT_RESULTS_DIR', default_dir)
+    return os.path.join(dest_directory, directory_name)
+
 
 def model_save(fn):
     with open(fn, 'wb') as f:

@@ -88,19 +88,13 @@ def main():
     args.tied = True
 
     def train():
-        # Turn on training mode which enables dropout.
-        if args.model == 'QRNN': model.reset()
-        total_loss = 0
-        start_time = time.time()
         ntokens = len(corpus.dictionary)
         hidden = model.init_hidden(args.batch_size)
-        batch, i = 0, 0
         while i < train_data.size(0) - 1 - 1:
+
             bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
             # Prevent excessively small or negative sequence lengths
             seq_len = max(5, int(np.random.normal(bptt, 5)))
-            # There's a very small chance that it could select a very long sequence length resulting in OOM
-            # seq_len = min(seq_len, args.bptt + 10)
 
             lr2 = optimizer.param_groups[0]['lr']
             optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
@@ -128,18 +122,6 @@ def main():
 
             total_loss += raw_loss.data
             optimizer.param_groups[0]['lr'] = lr2
-            if batch % args.log_interval == 0 and batch > 0:
-                cur_loss = total_loss.item() / args.log_interval
-                elapsed = time.time() - start_time
-                print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
-                        'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
-                    epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
-                    elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2)))
-                total_loss = 0
-                start_time = time.time()
-            ###
-            batch += 1
-            i += seq_len
 
 
     # Set the random seed manually for reproducibility.
@@ -254,11 +236,6 @@ def main():
                     prm.data = optimizer.state[prm]['ax'].clone()
 
                 val_loss2 = evaluate(val_data)
-                print('-' * 89)
-                print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                    'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
-                        epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
-                print('-' * 89)
 
                 if val_loss2 < stored_loss:
                     model_save(args.save)
@@ -270,11 +247,6 @@ def main():
 
             else:
                 val_loss = evaluate(val_data, eval_batch_size)
-                print('-' * 89)
-                print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                    'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
-                epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
-                print('-' * 89)
 
                 if val_loss < stored_loss:
                     model_save(args.save)

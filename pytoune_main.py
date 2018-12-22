@@ -98,33 +98,6 @@ def get_experiment_directory(directory_name):
     return os.path.join(dest_directory, directory_name)
 
 
-def model_save(fn):
-    with open(fn, 'wb') as f:
-        torch.save([model, criterion, optimizer], f)
-
-
-def model_load(fn):
-    global model, criterion, optimizer
-    with open(fn, 'rb') as f:
-        model, criterion, optimizer = torch.load(f)
-
-
-def evaluate(data_source, batch_size=10):
-    # Turn on evaluation mode which disables dropout.
-    model.eval()
-    if args.model == 'QRNN': model.reset()
-    total_loss = 0
-    ntokens = len(corpus.dictionary)
-    hidden = model.init_hidden(batch_size)
-    for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args, evaluation=True)
-        output, hidden = model(data, hidden)
-        total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
-        hidden = repackage_hidden(hidden)
-    return total_loss.item() / len(data_source)
-
-
-
 def main():
     randomhash = ''.join(str(time.time()).split('.'))
 
@@ -221,6 +194,7 @@ def main():
         optimizer = torch.optim.Adam(params, lr=args.lr, weight_decay=args.wdecay)
 
     device = None
+    device_id = 0
     if torch.cuda.is_available():
         torch.cuda.set_device(device_id) # Fix bug where memory is allocated on GPU0 when ask to take GPU1.
         device = torch.device('cuda:%d' % device_id)

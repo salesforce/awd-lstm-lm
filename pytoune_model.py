@@ -1,6 +1,9 @@
 import logging
+import numpy as np
 import torch
 import torch.nn as nn
+
+from pytoune.framework.metrics import acc
 
 from splitcross import SplitCrossEntropyLoss
 from embed_regularize import embedded_dropout
@@ -24,6 +27,7 @@ class RNNModel(nn.Module):
         self.tie_weights = tie_weights
         self.alpha = alpha
         self.beta = beta
+        self.metrics = [self.acc, self.perplexity]
 
         self.lockdrop = LockedDropout()
         self.idrop = nn.Dropout(dropouti)
@@ -93,6 +97,13 @@ class RNNModel(nn.Module):
         if self.beta: loss = loss + sum(self.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
 
         return loss
+
+    def acc(self, X_pred, X_true):
+        output, rnn_hs, dropped_rnn_hs = X_pred
+        return acc(output, X_true)
+
+    def perplexity(self, X_pred, X_true):
+        return np.exp(self.loss_function(X_pred, X_true))
 
     def reset(self):
         if self.rnn_type == 'QRNN': [r.reset() for r in self.rnns]

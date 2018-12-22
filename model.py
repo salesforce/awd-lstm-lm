@@ -64,7 +64,7 @@ class RNNModel(nn.Module):
 
 
         # Build the SplitCrossEntropyLoss criterion here
-        self.build_criterion()
+        # self.build_criterion()
 
     def build_criterion(self):
         splits = []

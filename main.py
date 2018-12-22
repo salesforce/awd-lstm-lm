@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 
 import data
+from data import SentenceLoader
 import model as m
 
 from utils import batchify, get_batch, repackage_hidden
@@ -46,11 +47,12 @@ def evaluate(data_source, batch_size=10):
     ntokens = len(corpus.dictionary)
     hidden = model.init_hidden(batch_size)
     for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args, evaluation=True)
+        data, targets = get_batch(data_source, i, args.bptt)
         output, hidden = model(data, hidden)
         total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
         hidden = repackage_hidden(hidden)
     return total_loss.item() / len(data_source)
+
 
 
 
@@ -90,6 +92,8 @@ def main():
     def train():
         ntokens = len(corpus.dictionary)
         hidden = model.init_hidden(args.batch_size)
+        batch, i = 0, 0
+        total_loss = 0
         while i < train_data.size(0) - 1 - 1:
 
             bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
@@ -97,9 +101,10 @@ def main():
             seq_len = max(5, int(np.random.normal(bptt, 5)))
 
             lr2 = optimizer.param_groups[0]['lr']
-            optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
+            eff_lr = lr2 * seq_len / args.bptt
+            optimizer.param_groups[0]['lr'] = eff_lr
             model.train()
-            data, targets = get_batch(train_data, i, args, seq_len=seq_len)
+            data, targets = get_batch(train_data, i, bptt, seq_len=seq_len)
 
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
@@ -122,6 +127,9 @@ def main():
 
             total_loss += raw_loss.data
             optimizer.param_groups[0]['lr'] = lr2
+
+            batch += 1
+            i += seq_len
 
 
     # Set the random seed manually for reproducibility.

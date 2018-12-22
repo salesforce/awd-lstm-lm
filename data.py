@@ -1,7 +1,11 @@
 import os
-import torch
-
 from collections import Counter
+
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+
+from utils import get_batch
 
 
 class Dictionary(object):
@@ -54,3 +58,17 @@ class Corpus(object):
                     token += 1
 
         return ids
+
+
+class SentenceLoader:
+    def __init__(self, dataset, bptt):
+        self.bptt = bptt
+        self.seq_len = bptt
+        self.dataset = dataset
+
+    def __iter__(self):
+        for i in range(0, self.dataset.size(0) - 1 - 1):
+            print(i)
+            bptt = self.bptt if np.random.random() < 0.95 else self.bptt / 2.
+            self.seq_len = max(5, int(np.random.normal(bptt, 5)))
+            yield get_batch(self.dataset, i, bptt, self.seq_len)

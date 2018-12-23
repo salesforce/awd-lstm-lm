@@ -87,20 +87,26 @@ class RNNModel(nn.Module):
         self.criterion = SplitCrossEntropyLoss(self.ninp, splits=splits, verbose=False)
 
     def loss_function(self, X_pred, X_true):
-        output, rnn_hs, dropped_rnn_hs = X_pred
-        loss = self.criterion(self.decoder.weight, self.decoder.bias, output, X_true)
+        if type(X_pred) == tuple:
+            output, rnn_hs, dropped_rnn_hs = X_pred
+            loss = self.criterion(self.decoder.weight, self.decoder.bias, output, X_true)
 
-        # Activiation Regularization
-        if self.alpha: loss = loss + sum(self.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
+            # Activiation Regularization
+            if self.alpha: loss = loss + sum(self.alpha * dropped_rnn_h.pow(2).mean() for dropped_rnn_h in dropped_rnn_hs[-1:])
 
-        # Temporal Activation Regularization (slowness)
-        if self.beta: loss = loss + sum(self.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
-
+            # Temporal Activation Regularization (slowness)
+            if self.beta: loss = loss + sum(self.beta * (rnn_h[1:] - rnn_h[:-1]).pow(2).mean() for rnn_h in rnn_hs[-1:])
+        else:
+            output = X_pred
+            loss = self.criterion(self.decoder.weight, self.decoder.bias, output, X_true)
         return loss
 
     def acc(self, X_pred, X_true):
-        output, rnn_hs, dropped_rnn_hs = X_pred
-        return acc(output, X_true)
+        if type(X_pred) == tuple:
+            output, rnn_hs, dropped_rnn_hs = X_pred
+        else:
+            output = X_pred
+        return acc(self.decoder(output), X_true)
 
     def perplexity(self, X_pred, X_true):
         return np.exp(self.loss_function(X_pred, X_true))

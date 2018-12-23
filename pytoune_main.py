@@ -49,7 +49,7 @@ class AdaptativeLRSchedulerCallback(Callback):
 
 class EvaluationCallback(Callback):
     def __init__(self, ):
-        self.tmp_params = {}
+        self.tmp = {}
 
     def on_epoch_begin(self, epoch, logs):
         if 't0' in self.model.optimizer.param_groups[0]: # Check if we are in ASGD

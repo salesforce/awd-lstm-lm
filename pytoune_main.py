@@ -77,6 +77,7 @@ class ASGDOptimizerSwitchCallback(Callback):
     def on_epoch_end(self, epoch, logs):
         val_loss = logs['val_loss']
         if self.can_switch_to_asgd() and self.is_non_mono(val_loss):
+            logging.info("Switching to ASGD")
             self.model.optimizer = torch.optim.ASGD(
                 self.model.model.parameters(),
                 lr=self.args.lr,

@@ -68,10 +68,13 @@ class SentenceLoader:
         self.dataset = dataset
 
     def __iter__(self):
-        for i in range(0, self.dataset.size(0) - 1 - 1):
+        i = 0
+        while i < self.dataset.size(0) - 1 - 1:
             bptt = self.bptt if np.random.random() < 0.95 else self.bptt / 2.
             self.seq_len = max(5, int(np.random.normal(bptt, 5)))
-            yield get_batch(self.dataset, i, bptt, self.seq_len)
+            batch = get_batch(self.dataset, i, bptt, self.seq_len)
+            i += self.seq_len
+            yield batch
 
     def __len__(self):
         return len(self.dataset) // self.bptt

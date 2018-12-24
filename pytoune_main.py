@@ -61,7 +61,7 @@ class EvaluationCallback(Callback):
         if 't0' in self.model.optimizer.param_groups[0]: # Check if we are in ASGD
             for prm in self.model.model.parameters():
                 self.tmp[prm] = prm.data.clone()
-                prm.data = self.model.model.optimizer.state[prm]['ax'].clone()
+                prm.data = self.model.optimizer.state[prm]['ax'].clone()
 
 
 class ASGDOptimizerSwitchCallback(Callback):

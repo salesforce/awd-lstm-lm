@@ -1,3 +1,5 @@
+import torch
+import logging
 from pytoune.framework import Callback
 
 class HiddenInitCallback(Callback):

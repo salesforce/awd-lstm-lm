@@ -1,6 +1,9 @@
 from pytoune.framework import Callback
 
 class HiddenInitCallback(Callback):
+    """
+    This callback is used to reset the hidden state at each epoch.
+    """
     def __init__(self, batch_size):
         self.batch_size = batch_size
 
@@ -9,11 +12,18 @@ class HiddenInitCallback(Callback):
 
 
 class HiddenRepackagingCallback(Callback):
+    """
+    At each batch we need to repackage the hidden state
+    so that the gradient does not backprop through the whole dataset.
+    """
     def on_batch_begin(self, batch, logs):
         self.model.model.repackage_hidden()
 
 
 class AdaptativeLRSchedulerCallback(Callback):
+    """
+    This callback computes a learning rate based on the sequence length and the bptt.
+    """
     def __init__(self, loader):
         self.loader = loader
         self.lr2 = None
@@ -28,6 +38,10 @@ class AdaptativeLRSchedulerCallback(Callback):
 
 
 class EvaluationCallback(Callback):
+    """
+    This callback copies some params before the epoch begins.
+    It was not that clear why we did this in the original code, may need further documentation.
+    """
     def __init__(self, ):
         self.tmp = {}
 
@@ -45,6 +59,10 @@ class EvaluationCallback(Callback):
 
 
 class ASGDOptimizerSwitchCallback(Callback):
+    """
+    This callback triggers the change of the SGD optimizer to ASGD,
+    given we are using SGD (not Adam) and the validation loss is non mono.
+    """
     def __init__(self, args):
         self.args = args
         self.val_losses = list()
@@ -70,6 +88,10 @@ class ASGDOptimizerSwitchCallback(Callback):
 
 
 class MetricsCallback(Callback):
+    """
+    This callback logs a bunch of information about parameters, gradients etc.
+    As suggested by https://github.com/allenai/writing-code-for-nlp-research-emnlp2018/blob/master/writing_code_for_nlp_research.pdf
+    """
     def __init__(self, logger):
         super(MetricsCallback, self).__init__()
         self.logger = logger

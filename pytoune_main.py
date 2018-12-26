@@ -143,7 +143,7 @@ def main():
         model,
         device=device,
         optimizer=optimizer,
-        monitor_metric='loss',
+        monitor_metric='val_loss',
         monitor_mode='min'
     )
 
@@ -154,7 +154,7 @@ def main():
         ClipNorm(params, args.clip),
         EvaluationCallback(),
         ASGDOptimizerSwitchCallback(args),
-        ReduceLROnPlateau(monitor='loss', mode='min', patience=20, factor=0.5, threshold_mode='abs', threshold=1e-3, verbose=True)
+        ReduceLROnPlateau(monitor='val_loss', mode='min', patience=20, factor=0.5, threshold_mode='abs', threshold=1e-3, verbose=True)
     ]
 
     expt.train(train_loader, valid_loader, callbacks=callbacks)

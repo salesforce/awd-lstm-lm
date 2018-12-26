@@ -17,7 +17,7 @@ from utils import batchify, get_batch, repackage_hidden
 from splitcross import SplitCrossEntropyLoss
 
 from pytoune.framework import Experiment as PytouneExperiment, Callback
-from pytoune.framework.callbacks import ClipNorm
+from pytoune.framework.callbacks import ClipNorm, ReduceLROnPlateau
 
 
 class HiddenInitCallback(Callback):
@@ -207,7 +207,14 @@ def main():
     model_name = "AWD-LSTM"
     expt_name = './expt_{}'.format(model_name)
     expt_dir = get_experiment_directory(expt_name)
-    expt = PytouneExperiment(expt_dir, model, device=device, optimizer=optimizer, monitor_metric='acc', monitor_mode='max')
+    expt = PytouneExperiment(
+        expt_dir,
+        model,
+        device=device,
+        optimizer=optimizer,
+        monitor_metric='loss',
+        monitor_mode='min'
+    )
 
     callbacks = [
         HiddenInitCallback(args.batch_size),
@@ -215,7 +222,8 @@ def main():
         AdaptativeLRSchedulerCallback(train_loader),
         ClipNorm(params, args.clip),
         EvaluationCallback(),
-        ASGDOptimizerSwitchCallback(args)
+        ASGDOptimizerSwitchCallback(args),
+        ReduceLROnPlateau(monitor='loss', mode='min', patience=20, factor=0.5, threshold_mode='abs', threshold=1e-3, verbose=True)
     ]
 
     expt.train(train_loader, valid_loader, callbacks=callbacks)

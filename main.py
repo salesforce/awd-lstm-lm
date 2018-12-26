@@ -15,46 +15,6 @@ import model as m
 from utils import batchify, get_batch, repackage_hidden
 from splitcross import SplitCrossEntropyLoss
 
-from pytoune.framework import Experiment as PytouneExperiment
-
-
-def get_source_directory(directory_name):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), directory_name)
-
-
-def get_experiment_directory(directory_name):
-    default_dir = get_source_directory('./results')
-    dest_directory = os.environ.get('RESULTS_DIR', default_dir)
-    return os.path.join(dest_directory, directory_name)
-
-
-def model_save(fn):
-    with open(fn, 'wb') as f:
-        torch.save([model, criterion, optimizer], f)
-
-
-def model_load(fn):
-    global model, criterion, optimizer
-    with open(fn, 'rb') as f:
-        model, criterion, optimizer = torch.load(f)
-
-
-def evaluate(data_source, batch_size=10):
-    # Turn on evaluation mode which disables dropout.
-    model.eval()
-    if args.model == 'QRNN': model.reset()
-    total_loss = 0
-    ntokens = len(corpus.dictionary)
-    hidden = model.init_hidden(batch_size)
-    for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args.bptt)
-        output, hidden = model(data, hidden)
-        total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
-        hidden = repackage_hidden(hidden)
-    return total_loss.item() / len(data_source)
-
-
-
 
 def main():
     randomhash = ''.join(str(time.time()).split('.'))
@@ -131,6 +91,31 @@ def main():
             batch += 1
             i += seq_len
 
+
+    def evaluate(data_source, batch_size=10):
+        # Turn on evaluation mode which disables dropout.
+        model.eval()
+        if args.model == 'QRNN': model.reset()
+        total_loss = 0
+        ntokens = len(corpus.dictionary)
+        hidden = model.init_hidden(batch_size)
+        for i in range(0, data_source.size(0) - 1, args.bptt):
+            data, targets = get_batch(data_source, i, args.bptt)
+            output, hidden = model(data, hidden)
+            total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
+            hidden = repackage_hidden(hidden)
+        return total_loss.item() / len(data_source)
+
+
+    def model_save(fn):
+        with open(fn, 'wb') as f:
+            torch.save([model, criterion, optimizer], f)
+
+
+    def model_load(fn):
+        global model, criterion, optimizer
+        with open(fn, 'rb') as f:
+            model, criterion, optimizer = torch.load(f)
 
     # Set the random seed manually for reproducibility.
     np.random.seed(args.seed)

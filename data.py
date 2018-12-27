@@ -62,16 +62,18 @@ class Corpus(object):
 
 
 class SentenceLoader:
-    def __init__(self, dataset, bptt):
+    def __init__(self, dataset, bptt, train_mode=True):
         self.bptt = bptt
         self.seq_len = bptt
         self.dataset = dataset
+        self.train_mode = train_mode
 
     def __iter__(self):
         i = 0
         while i < self.dataset.size(0) - 1 - 1:
-            bptt = self.bptt if np.random.random() < 0.95 else self.bptt / 2.
-            self.seq_len = max(5, int(np.random.normal(bptt, 5)))
+            if self.train_mode:
+                bptt = self.bptt if np.random.random() < 0.95 else self.bptt / 2.
+                self.seq_len = max(5, int(np.random.normal(bptt, 5)))
             batch = get_batch(self.dataset, i, bptt, self.seq_len)
             i += self.seq_len
             yield batch

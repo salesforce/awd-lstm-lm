@@ -6,11 +6,16 @@ class HiddenInitCallback(Callback):
     """
     This callback is used to reset the hidden state at each epoch.
     """
-    def __init__(self, batch_size):
-        self.batch_size = batch_size
+    def __init__(self, train_batch_size, eval_batch_size):
+        self.train_batch_size = train_batch_size
+        self.eval_batch_size = eval_batch_size
 
     def on_epoch_begin(self, epoch, logs):
-        self.model.model.init_hidden(self.batch_size)
+        if self.model.model.training:
+            self.model.model.init_hidden(self.train_batch_size)
+        else:
+            self.model.model.init_hidden(self.eval_batch_size)
+
 
 
 class HiddenRepackagingCallback(Callback):

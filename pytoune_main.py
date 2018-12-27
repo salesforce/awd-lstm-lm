@@ -85,15 +85,15 @@ def main():
         corpus = data.Corpus(args.data)
         torch.save(corpus, fn)
 
-    eval_batch_size = args.batch_size
-    test_batch_size = args.batch_size
+    eval_batch_size = 20
+    test_batch_size = 1
     train_data = batchify(corpus.train, args.batch_size, args)
     val_data = batchify(corpus.valid, eval_batch_size, args)
     test_data = batchify(corpus.test, test_batch_size, args)
 
     train_loader = SentenceLoader(train_data, args.bptt)
-    valid_loader = SentenceLoader(val_data, args.bptt)
-    test_loader = SentenceLoader(test_data, args.bptt)
+    valid_loader = SentenceLoader(val_data, args.bptt, False)
+    test_loader = SentenceLoader(test_data, args.bptt, False)
 
     ntokens = len(corpus.dictionary)
     model = m.RNNModel(
@@ -151,11 +151,11 @@ def main():
     callbacks = [
         HiddenInitCallback(args.batch_size, eval_batch_size),
         HiddenRepackagingCallback(),
-        AdaptativeLRSchedulerCallback(train_loader),
         ClipNorm(params, args.clip),
-        EvaluationCallback(),
+        # EvaluationCallback(),
         ASGDOptimizerSwitchCallback(args),
-        ReduceLROnPlateau(monitor='val_loss', mode='min', patience=20, factor=0.5, threshold_mode='abs', threshold=1e-3, verbose=True)
+        ReduceLROnPlateau(monitor='val_loss', mode='min', patience=20, factor=0.5, threshold_mode='abs', threshold=1e-3, verbose=True),
+        AdaptativeLRSchedulerCallback(train_loader),
     ]
 
     expt.train(train_loader, valid_loader, callbacks=callbacks)

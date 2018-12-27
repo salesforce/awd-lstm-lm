@@ -11,10 +11,7 @@ class HiddenInitCallback(Callback):
         self.eval_batch_size = eval_batch_size
 
     def on_epoch_begin(self, epoch, logs):
-        if self.model.model.training:
-            self.model.model.init_hidden(self.train_batch_size)
-        else:
-            self.model.model.init_hidden(self.eval_batch_size)
+        self.model.model.init_hidden(self.train_batch_size)
 
 
 

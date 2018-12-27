@@ -121,6 +121,8 @@ class RNNModel(nn.Module):
         self.decoder.weight.data.uniform_(-initrange, initrange)
 
     def forward(self, input):
+        if input.shape[1] != self.hidden[0][0].shape[1]:
+            self.init_hidden(input.shape[1])
         emb = embedded_dropout(self.encoder, input, dropout=self.dropoute if self.training else 0)
         #emb = self.idrop(emb)
 

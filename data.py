@@ -74,7 +74,9 @@ class SentenceLoader:
             if self.train_mode:
                 bptt = self.bptt if np.random.random() < 0.95 else self.bptt / 2.
                 self.seq_len = max(5, int(np.random.normal(bptt, 5)))
-            batch = get_batch(self.dataset, i, bptt, self.seq_len)
+                batch = get_batch(self.dataset, i, bptt, self.seq_len)
+            else:
+                batch = get_batch(self.dataset, i, self.bptt, self.seq_len)
             i += self.seq_len
             yield batch
 

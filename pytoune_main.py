@@ -135,7 +135,8 @@ def main():
     else:
         logging.info("Training on CPU")
 
-    model_name = "AWD-LSTM"
+    dataset = args.data.split('/')[-1]
+    model_name = "AWD_{}_{}".format(args.model, dataset)
     expt_name = './expt_{}'.format(model_name)
     expt_dir = get_experiment_directory(expt_name)
     expt = PytouneExperiment(

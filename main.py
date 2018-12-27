@@ -9,11 +9,37 @@ import torch
 import torch.nn as nn
 
 import data
-from data import SentenceLoader
 import model as m
 
 from utils import batchify, get_batch, repackage_hidden
 from splitcross import SplitCrossEntropyLoss
+
+
+def model_save(fn):
+    with open(fn, 'wb') as f:
+        torch.save([model, criterion, optimizer], f)
+
+
+def model_load(fn):
+    global model, criterion, optimizer
+    with open(fn, 'rb') as f:
+        model, criterion, optimizer = torch.load(f)
+
+
+def evaluate(data_source, batch_size=10):
+    # Turn on evaluation mode which disables dropout.
+    model.eval()
+    if args.model == 'QRNN': model.reset()
+    total_loss = 0
+    ntokens = len(corpus.dictionary)
+    hidden = model.init_hidden(batch_size)
+    for i in range(0, data_source.size(0) - 1, args.bptt):
+        data, targets = get_batch(data_source, i, args, evaluation=True)
+        output, hidden = model(data, hidden)
+        total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
+        hidden = repackage_hidden(hidden)
+    return total_loss.item() / len(data_source)
+
 
 
 def main():
@@ -50,21 +76,24 @@ def main():
     args.tied = True
 
     def train():
+        # Turn on training mode which enables dropout.
+        if args.model == 'QRNN': model.reset()
+        total_loss = 0
+        start_time = time.time()
         ntokens = len(corpus.dictionary)
         hidden = model.init_hidden(args.batch_size)
         batch, i = 0, 0
-        total_loss = 0
         while i < train_data.size(0) - 1 - 1:
-
             bptt = args.bptt if np.random.random() < 0.95 else args.bptt / 2.
             # Prevent excessively small or negative sequence lengths
             seq_len = max(5, int(np.random.normal(bptt, 5)))
+            # There's a very small chance that it could select a very long sequence length resulting in OOM
+            # seq_len = min(seq_len, args.bptt + 10)
 
             lr2 = optimizer.param_groups[0]['lr']
-            eff_lr = lr2 * seq_len / args.bptt
-            optimizer.param_groups[0]['lr'] = eff_lr
+            optimizer.param_groups[0]['lr'] = lr2 * seq_len / args.bptt
             model.train()
-            data, targets = get_batch(train_data, i, bptt, seq_len=seq_len)
+            data, targets = get_batch(train_data, i, args, seq_len=seq_len)
 
             # Starting each batch, we detach the hidden state from how it was previously produced.
             # If we didn't, the model would try backpropagating all the way to start of the dataset.
@@ -87,35 +116,19 @@ def main():
 
             total_loss += raw_loss.data
             optimizer.param_groups[0]['lr'] = lr2
-
+            if batch % args.log_interval == 0 and batch > 0:
+                cur_loss = total_loss.item() / args.log_interval
+                elapsed = time.time() - start_time
+                print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:05.5f} | ms/batch {:5.2f} | '
+                        'loss {:5.2f} | ppl {:8.2f} | bpc {:8.3f}'.format(
+                    epoch, batch, len(train_data) // args.bptt, optimizer.param_groups[0]['lr'],
+                    elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss), cur_loss / math.log(2)))
+                total_loss = 0
+                start_time = time.time()
+            ###
             batch += 1
             i += seq_len
 
-
-    def evaluate(data_source, batch_size=10):
-        # Turn on evaluation mode which disables dropout.
-        model.eval()
-        if args.model == 'QRNN': model.reset()
-        total_loss = 0
-        ntokens = len(corpus.dictionary)
-        hidden = model.init_hidden(batch_size)
-        for i in range(0, data_source.size(0) - 1, args.bptt):
-            data, targets = get_batch(data_source, i, args.bptt)
-            output, hidden = model(data, hidden)
-            total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
-            hidden = repackage_hidden(hidden)
-        return total_loss.item() / len(data_source)
-
-
-    def model_save(fn):
-        with open(fn, 'wb') as f:
-            torch.save([model, criterion, optimizer], f)
-
-
-    def model_load(fn):
-        global model, criterion, optimizer
-        with open(fn, 'rb') as f:
-            model, criterion, optimizer = torch.load(f)
 
     # Set the random seed manually for reproducibility.
     np.random.seed(args.seed)
@@ -161,9 +174,7 @@ def main():
         args.dropouti,
         args.dropoute,
         args.wdrop,
-        args.tied,
-        args.alpha,
-        args.beta
+        args.tied
     )
 
     ###
@@ -231,6 +242,11 @@ def main():
                     prm.data = optimizer.state[prm]['ax'].clone()
 
                 val_loss2 = evaluate(val_data)
+                print('-' * 89)
+                print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+                    'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
+                        epoch, (time.time() - epoch_start_time), val_loss2, math.exp(val_loss2), val_loss2 / math.log(2)))
+                print('-' * 89)
 
                 if val_loss2 < stored_loss:
                     model_save(args.save)
@@ -242,6 +258,11 @@ def main():
 
             else:
                 val_loss = evaluate(val_data, eval_batch_size)
+                print('-' * 89)
+                print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+                    'valid ppl {:8.2f} | valid bpc {:8.3f}'.format(
+                epoch, (time.time() - epoch_start_time), val_loss, math.exp(val_loss), val_loss / math.log(2)))
+                print('-' * 89)
 
                 if val_loss < stored_loss:
                     model_save(args.save)

@@ -158,7 +158,7 @@ def main():
         AdaptativeLRSchedulerCallback(train_loader),
     ]
 
-    expt.train(train_loader, valid_loader, callbacks=callbacks)
+    expt.train(train_loader, valid_loader, callbacks=callbacks, seed=args.seed)
     expt.test(test_loader)
 
 

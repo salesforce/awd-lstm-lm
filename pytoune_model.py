@@ -15,6 +15,7 @@ class RNNModel(nn.Module):
 
     def __init__(self, rnn_type, ntoken, ninp, nhid, nlayers, dropout=0.5, dropouth=0.5, dropouti=0.5, dropoute=0.1, wdrop=0, tie_weights=False, alpha=2, beta=1):
         super(RNNModel, self).__init__()
+        self.bsz = 20
         self.ntoken = ntoken
         self.rnn_type = rnn_type
         self.ninp = ninp
@@ -172,3 +173,7 @@ class RNNModel(nn.Module):
 
     def repackage_hidden(self):
         self.hidden = self.__repackage_single_hidden(self.hidden)
+
+    def eval(self):
+        self.init_hidden(self.bsz)
+        return super(RNNModel, self).eval()

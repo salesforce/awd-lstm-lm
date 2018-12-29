@@ -65,11 +65,13 @@ class SentenceLoader:
     def __init__(self, dataset, bptt, train_mode=True):
         self.bptt = bptt
         self.seq_len = bptt
+        self.init_seq_len = bptt
         self.dataset = dataset
         self.train_mode = train_mode
 
     def __iter__(self):
         i = 0
+        self.seq_len = self.init_seq_len
         while i < self.dataset.size(0) - 1 - 1:
             if self.train_mode:
                 bptt = self.bptt if np.random.random() < 0.95 else self.bptt / 2.

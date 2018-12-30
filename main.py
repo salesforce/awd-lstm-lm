@@ -15,31 +15,6 @@ from utils import batchify, get_batch, repackage_hidden
 from splitcross import SplitCrossEntropyLoss
 
 
-def model_save(fn):
-    with open(fn, 'wb') as f:
-        torch.save([model, criterion, optimizer], f)
-
-
-def model_load(fn):
-    global model, criterion, optimizer
-    with open(fn, 'rb') as f:
-        model, criterion, optimizer = torch.load(f)
-
-
-def evaluate(data_source, batch_size=10):
-    # Turn on evaluation mode which disables dropout.
-    model.eval()
-    if args.model == 'QRNN': model.reset()
-    total_loss = 0
-    ntokens = len(corpus.dictionary)
-    hidden = model.init_hidden(batch_size)
-    for i in range(0, data_source.size(0) - 1, args.bptt):
-        data, targets = get_batch(data_source, i, args, evaluation=True)
-        output, hidden = model(data, hidden)
-        total_loss += len(data) * criterion(model.decoder.weight, model.decoder.bias, output, targets).data
-        hidden = repackage_hidden(hidden)
-    return total_loss.item() / len(data_source)
-
 
 
 def main():
@@ -74,6 +49,17 @@ def main():
     parser.add_argument('--when', nargs="+", type=int, default=[-1], help='When (which epochs) to divide the learning rate by 10 - accepts multiple')
     args = parser.parse_args()
     args.tied = True
+
+    def model_save(fn):
+        with open(fn, 'wb') as f:
+            torch.save([model, criterion, optimizer], f)
+
+
+    def model_load(fn):
+        global model, criterion, optimizer
+        with open(fn, 'rb') as f:
+            model, criterion, optimizer = torch.load(f)
+
 
     def train():
         # Turn on training mode which enables dropout.
@@ -129,6 +115,25 @@ def main():
             batch += 1
             i += seq_len
 
+    def evaluate(data_source, batch_size=10):
+        # Turn on evaluation mode which disables dropout.
+        model.eval()
+        if args.model == 'QRNN': model.reset()
+        total_loss = 0
+        ntokens = len(corpus.dictionary)
+        hidden = model.init_hidden(batch_size)
+        for i in range(0, data_source.size(0) - 1, args.bptt):
+            data, targets = get_batch(data_source, i, args.bptt)
+            import pdb; pdb.set_trace()
+            output, hidden = model(data, hidden)
+            loss = criterion(model.decoder.weight, model.decoder.bias, output, targets).data
+            total_loss += len(data) * loss
+            print(loss.data, file=open('main_valid.logs', 'a+'))
+            hidden = repackage_hidden(hidden)
+        return total_loss.item() / len(data_source)
+
+
+
 
     # Set the random seed manually for reproducibility.
     np.random.seed(args.seed)
@@ -151,7 +156,7 @@ def main():
         corpus = data.Corpus(args.data)
         torch.save(corpus, fn)
 
-    eval_batch_size = 10
+    eval_batch_size = 20
     test_batch_size = 1
     train_data = batchify(corpus.train, args.batch_size, args)
     val_data = batchify(corpus.valid, eval_batch_size, args)

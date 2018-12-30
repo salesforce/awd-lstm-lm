@@ -158,7 +158,13 @@ def main():
         AdaptativeLRSchedulerCallback(train_loader),
     ]
 
-    expt.train(train_loader, valid_loader, callbacks=callbacks, seed=args.seed)
+    try:
+        expt.train(train_loader, valid_loader, callbacks=callbacks, seed=args.seed)
+    except KeyboardInterrupt:
+        print('-' * 89)
+        print('Exiting from training early')
+
+    print("Testing on test set...")
     expt.test(test_loader)
 
 

@@ -109,7 +109,8 @@ def main():
         args.wdrop,
         args.tied,
         args.alpha,
-        args.beta
+        args.beta,
+        args.batch_size
     )
 
     if args.model == 'QRNN': model.reset()

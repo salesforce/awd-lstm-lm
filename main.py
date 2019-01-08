@@ -11,7 +11,7 @@ import torch.nn as nn
 
 import data
 from data import SentenceLoader
-import pytoune_model as m
+import model as m
 
 from utils import batchify, get_batch, repackage_hidden
 from splitcross import SplitCrossEntropyLoss

@@ -1,2 +1,6 @@
 *.pt
 __pycache__/
+
+corpus.*
+data/
+results/

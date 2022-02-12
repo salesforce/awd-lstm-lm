@@ -140,7 +140,7 @@ if not criterion:
     print('Using', splits)
     criterion = SplitCrossEntropyLoss(args.emsize, splits=splits, verbose=False)
 ###
-if args.cuda:
+if args.cuda and torch.cuda.is_available():
     model = model.cuda()
     criterion = criterion.cuda()
 ###

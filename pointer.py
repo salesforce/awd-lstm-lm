@@ -53,7 +53,8 @@ def one_hot(idx, size, cuda=True):
     a = np.zeros((1, size), np.float32)
     a[0][idx] = 1
     v = Variable(torch.from_numpy(a))
-    if cuda: v = v.cuda()
+    if cuda and torch.cuda.is_available():
+        v = v.cuda()
     return v
 
 def evaluate(data_source, batch_size=10, window=args.window):
@@ -70,7 +71,10 @@ def evaluate(data_source, batch_size=10, window=args.window):
         data, targets = get_batch(data_source, i, evaluation=True, args=args)
         output, hidden, rnn_outs, _ = model(data, hidden, return_h=True)
         rnn_out = rnn_outs[-1].squeeze()
-        output_flat = output.view(-1, ntokens)
+        # output_flat = output.view(-1, ntokens)
+
+        output_flat = criterion.logprob(model.decoder.weight, model.decoder.bias, output)
+
         ###
         # Fill pointer history
         start_idx = len(next_word_history) if next_word_history is not None else 0
@@ -90,7 +94,8 @@ def evaluate(data_source, batch_size=10, window=args.window):
         ###
         # Pointer manual cross entropy
         loss = 0
-        softmax_output_flat = torch.nn.functional.softmax(output_flat)
+        # softmax_output_flat = torch.nn.functional.softmax(output_flat)
+        softmax_output_flat = output_flat.exp()
         for idx, vocab_loss in enumerate(softmax_output_flat):
             p = vocab_loss
             if start_idx + idx > window:
@@ -114,10 +119,10 @@ def evaluate(data_source, batch_size=10, window=args.window):
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
-    if not args.cuda:
-        model = torch.load(f, map_location=lambda storage, loc: storage)
+    if not args.cuda or not torch.cuda.is_available():
+        model, criterion, _ = torch.load(f, map_location=lambda storage, loc: storage)
     else:
-        model = torch.load(f)
+        model, criterion, _ = torch.load(f)
 print(model)
 
 # Run on val data.
